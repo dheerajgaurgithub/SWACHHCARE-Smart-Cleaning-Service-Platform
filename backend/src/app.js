@@ -15,32 +15,88 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Database connection
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI)
 .then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+.catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+});
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/workers', require('./routes/workers'));
-app.use('/api/bookings', require('./routes/bookings'));
-app.use('/api/services', require('./routes/services'));
-app.use('/api/transactions', require('./routes/transactions'));
-app.use('/api/admin', require('./routes/admin'));
+// Import route handlers
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const workerRoutes = require('./routes/workers');
+const bookingRoutes = require('./routes/bookings');
+const serviceRoutes = require('./routes/services');
+const transactionRoutes = require('./routes/transactions');
+const adminRoutes = require('./routes/admin');
+const paymentRoutes = require('./routes/paymentRoutes');
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Something went wrong!', error: err.message });
+// Import error handling
+const AppError = require('./utils/appError');
+const globalErrorHandler = require('./middleware/errorHandler');
+
+// Mount API routes directly on app
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/workers', workerRoutes);
+app.use('/api/bookings', bookingRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/v1/payments', paymentRoutes);
+
+// Handle 404 - must be after all other routes
+app.use(function(req, res, next) {
+    const err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+});
+
+// Error handler
+app.use(function(err, req, res, next) {
+    // Set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
+
+    // Send JSON response
+    res.status(err.status || 500);
+    res.json({
+        error: {
+            status: err.status || 500,
+            message: err.message || 'Internal Server Error'
+        }
+    });
 });
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const port = process.env.PORT || 5000;
+const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}...`);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.error(err.name, err.message);
+    server.close(() => {
+        process.exit(1);
+    });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION! 💥 Shutting down...');
+    console.error(err.name, err.message);
+    process.exit(1);
+});
+
+// Handle SIGTERM for graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
+    server.close(() => {
+        console.log('💥 Process terminated!');
+    });
 });
 
 module.exports = app;
