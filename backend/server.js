@@ -83,15 +83,15 @@ app.get("/healthz", (req, res) => {
 })
 
 // Routes
-app.use("/api/v1/auth", require("./routes/auth"))
-app.use("/api/v1/users", require("./routes/users"))
-app.use("/api/v1/workers", require("./routes/workers"))
-app.use("/api/v1/bookings", require("./routes/bookings"))
-app.use("/api/v1/payments", require("./routes/payments"))
-app.use("/api/v1/transactions", require("./routes/transactions"))
-app.use("/api/v1/admin", require("./routes/admin"))
-app.use("/api/v1/contact", require("./routes/contact"))
-app.use("/api/v1/chat", require("./routes/chat"))
+app.use("/api/v1/auth", require("./src/routes/auth.routes"))
+app.use("/api/v1/users", require("./src/routes/user.routes"))
+app.use("/api/v1/workers", require("./src/routes/worker.routes"))
+app.use("/api/v1/bookings", require("./src/routes/booking.routes"))
+app.use("/api/v1/payments", require("./src/routes/payment.routes"))
+app.use("/api/v1/transactions", require("./src/routes/transaction.routes"))
+app.use("/api/v1/admin", require("./src/routes/admin.routes"))
+app.use("/api/v1/contact", require("./src/routes/contact.routes"))
+app.use("/api/v1/chat", require("./src/routes/chat.routes"))
 
 // Socket.io Setup
 const { setupSocketHandlers } = require("./src/socket/socketHandlers")
