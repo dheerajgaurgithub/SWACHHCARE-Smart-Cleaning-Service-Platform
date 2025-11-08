@@ -5,7 +5,7 @@ const socketIo = require("socket.io")
 const cors = require("cors")
 const helmet = require("helmet")
 const compression = require("compression")
-const mongoSanitize = require("mongo-sanitize")
+const mongoSanitize = require("express-mongo-sanitize")
 const rateLimit = require("express-rate-limit")
 const winston = require("winston")
 const mongoose = require("mongoose")
@@ -47,7 +47,12 @@ const logger = winston.createLogger({
 
 // Security Middleware
 app.use(helmet())
-app.use(mongoSanitize())
+app.use(mongoSanitize({
+  replaceWith: '_',
+  onSanitize: ({ req, key }) => {
+    logger.warn(`Request contained not allowed property: ${key}`, { url: req.originalUrl });
+  },
+}));
 app.use(compression())
 
 // Rate Limiter
